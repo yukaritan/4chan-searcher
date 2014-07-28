@@ -1,25 +1,24 @@
-from bs4 import BeautifulSoup
-import re 
-import requests
+import re
 import json
+import requests
 
-r = requests.get('http://boards.4chan.org/g/catalog#s=Desktop')
+data = requests.get("http://boards.4chan.org/g/catalog").text
+match = re.match(".*var catalog = (?P<catalog>\{.*\});.*", data)
 
-soup = BeautifulSoup(r.text)
-script = soup.find('script',text=re.compile('.var.catalog.'))
+if not match:
+    print("Couldn't scrape catalog")
+    exit(1)
 
-json_text = re.search(r'.*var\s*catalog\s*=\s*({.*?});',
-                      script.string, flags=re.DOTALL | re.MULTILINE).group(1)
+catalog = json.loads(match.group('catalog'))
 
-data = json.loads(json_text)
+running = True
+while running:
+    try:
+        filtertext = input("filter: ")
+        for number, thread in catalog['threads'].items():
+            sub, teaser = thread['sub'], thread['teaser']
+            if filtertext in sub.lower() or filtertext in teaser.lower():
+                print(teaser)
 
-
-while True:
-
-    word=str(input("Enter search: "))
-
-    for i in list(data['threads'].values()):
-        text = i['teaser']
-        if re.search(".*"+ word +".*",text)!=None:
-            print(i['teaser'].encode('utf-8'))
-            print("------------------------------------------------------------------------------------------------------")
+    except KeyboardInterrupt:
+        running = False
